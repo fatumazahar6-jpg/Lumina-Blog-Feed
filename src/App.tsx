@@ -10,17 +10,29 @@ import {
   Github, 
   Twitter, 
   Instagram,
-  Search
+  Search,
+  Facebook,
+  Linkedin,
+  Youtube,
+  Send, // Using 'Send' for Telegram
+  Bookmark
 } from 'lucide-react';
-import { Post, Comment } from './types';
-import { INITIAL_POSTS } from './constants';
+import { Post, Comment, Author } from './types';
+import { INITIAL_POSTS, AUTHORS } from './constants';
 
 export default function App() {
   const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('All');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [postsPerPage] = useState(4); // Display 4 posts per page
+  const [savedPostIds, setSavedPostIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem('savedPostIds');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const categories = ['All', 'Lifestyle', 'Travel', 'Design', 'Productivity'];
+  const categories = ['All', 'Lifestyle', 'Travel', 'Design', 'Productivity', 'Saved'];
 
   const handleLike = (postId: string) => {
     setPosts(posts.map(post => 
@@ -41,9 +53,60 @@ export default function App() {
     ));
   };
 
-  const filteredPosts = activeCategory === 'All' 
-    ? posts 
-    : posts.filter(p => p.category === activeCategory);
+  const handleSavePost = (postId: string) => {
+    setSavedPostIds(prevSavedPostIds => {
+      const newSavedPostIds = prevSavedPostIds.includes(postId)
+        ? prevSavedPostIds.filter(id => id !== postId)
+        : [...prevSavedPostIds, postId];
+      localStorage.setItem('savedPostIds', JSON.stringify(newSavedPostIds));
+      return newSavedPostIds;
+    });
+  };
+
+  const filteredPosts = posts.filter(post => {
+    const matchesCategory = activeCategory === 'All' || activeCategory === 'Saved'
+      ? (activeCategory === 'Saved' ? savedPostIds.includes(post.id) : true)
+      : post.category === activeCategory;
+    
+    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          post.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesCategory && matchesSearch;
+  });
+
+  // Pagination logic
+  const indexOfLastPost = currentPage * postsPerPage;
+  const indexOfFirstPost = indexOfLastPost - postsPerPage;
+  const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
+
+  const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  // Social Sharing Functions
+  const getShareUrl = (platform: string, post: Post) => {
+    const postUrl = `${window.location.origin}/post/${post.id}`;
+    const text = encodeURIComponent(post.title + ' - ' + post.excerpt);
+
+    switch (platform) {
+      case 'twitter':
+        return `https://twitter.com/intent/tweet?url=${postUrl}&text=${text}`;
+      case 'facebook':
+        return `https://www.facebook.com/sharer/sharer.php?u=${postUrl}`;
+      case 'linkedin':
+        return `https://www.linkedin.com/shareArticle?mini=true&url=${postUrl}&title=${encodeURIComponent(post.title)}&summary=${text}`;
+      case 'youtube': // YouTube doesn't have a direct share API for arbitrary content like this
+        return 'https://www.youtube.com/'; // Redirect to YouTube homepage or channel
+      case 'telegram':
+        return `https://t.me/share/url?url=${postUrl}&text=${text}`;
+      default:
+        return '#';
+    }
+  };
+
+  const openShareWindow = (url: string) => {
+    window.open(url, '_blank', 'width=600,height=400');
+  };
 
   return (
     <div className="min-h-screen font-sans">
@@ -63,9 +126,16 @@ export default function App() {
               <a href="#" className="text-sm font-medium hover:text-black/60 transition-colors">Journal</a>
               <a href="#" className="text-sm font-medium hover:text-black/60 transition-colors">Archive</a>
               <a href="#" className="text-sm font-medium hover:text-black/60 transition-colors">About</a>
-              <button className="p-2 hover:bg-black/5 rounded-full transition-colors">
-                <Search size={20} />
-              </button>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search posts..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4 py-2 rounded-full bg-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                />
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              </div>
             </div>
 
             {/* Mobile menu button */}
@@ -181,85 +251,176 @@ export default function App() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-12">
               <AnimatePresence mode="popLayout">
-                {filteredPosts.map((post, index) => (
-                  <motion.article
-                    layout
-                    key={post.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                    className="flex flex-col group"
-                  >
-                    <div className="relative aspect-[16/10] rounded-2xl overflow-hidden mb-6 card-hover">
-                      <img 
-                        src={post.image} 
-                        alt={post.title} 
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="absolute top-4 left-4">
-                        <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-[10px] font-bold uppercase tracking-wider rounded-full shadow-sm">
-                          {post.category}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 text-xs text-gray-400 mb-3 uppercase tracking-widest font-medium">
-                        <span>{post.date}</span>
-                        <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                        <span>5 min read</span>
-                      </div>
-                      <h2 className="text-3xl font-serif font-bold mb-4 group-hover:text-black/70 transition-colors">
-                        {post.title}
-                      </h2>
-                      <p className="text-gray-600 mb-6 leading-relaxed line-clamp-2">
-                        {post.excerpt}
-                      </p>
-                      
-                      {/* Interaction Bar */}
-                      <div className="flex items-center justify-between pt-6 border-t border-black/5">
-                        <div className="flex items-center gap-6">
-                          <button 
-                            onClick={() => handleLike(post.id)}
-                            className="flex items-center gap-2 group/btn"
-                          >
-                            <Heart 
-                              size={20} 
-                              className={`transition-colors ${post.likes > 0 ? 'fill-red-500 text-red-500' : 'group-hover/btn:text-red-500'}`} 
-                            />
-                            <span className="text-sm font-medium">{post.likes}</span>
-                          </button>
-                          <button className="flex items-center gap-2 group/btn">
-                            <MessageCircle size={20} className="group-hover/btn:text-blue-500 transition-colors" />
-                            <span className="text-sm font-medium">{post.comments.length}</span>
-                          </button>
+                {currentPosts.map((post, index) => {
+                  const author = AUTHORS.find(a => a.id === post.authorId);
+                  return (
+                    <motion.article
+                      layout
+                      key={post.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.5, delay: index * 0.1 }}
+                      className="flex flex-col group"
+                    >
+                      <div className="relative aspect-[16/10] rounded-2xl overflow-hidden mb-6 card-hover">
+                        <img 
+                          src={post.image} 
+                          alt={post.title} 
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute top-4 left-4">
+                          <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-[10px] font-bold uppercase tracking-wider rounded-full shadow-sm">
+                            {post.category}
+                          </span>
                         </div>
-                        <button className="p-2 hover:bg-black/5 rounded-full transition-colors">
-                          <Share2 size={20} />
-                        </button>
                       </div>
-
-                      {/* Comment Section (Simplified) */}
-                      <div className="mt-6 space-y-4">
-                        {post.comments.length > 0 && (
-                          <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                            {post.comments.map(comment => (
-                              <div key={comment.id} className="text-sm">
-                                <span className="font-bold mr-2">{comment.author}</span>
-                                <span className="text-gray-600">{comment.text}</span>
-                                <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">{comment.timestamp}</p>
-                              </div>
-                            ))}
+                      
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 text-xs text-gray-400 mb-3 uppercase tracking-widest font-medium">
+                          <span>{post.date}</span>
+                          <span className="w-1 h-1 bg-gray-300 rounded-full" />
+                          <span>5 min read</span>
+                        </div>
+                        <h2 className="text-3xl font-serif font-bold mb-4 group-hover:text-black/70 transition-colors">
+                          {post.title}
+                        </h2>
+                        {author && (
+                          <div className="flex items-center gap-3 mb-6">
+                            <img 
+                              src={author.avatar} 
+                              alt={author.name} 
+                              className="w-8 h-8 rounded-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div>
+                              <p className="text-sm font-medium text-black">{author.name}</p>
+                              <p className="text-xs text-gray-500 line-clamp-1">{author.bio}</p>
+                            </div>
                           </div>
                         )}
-                        <CommentInput onAdd={(text) => handleAddComment(post.id, text)} />
+                        <p className="text-gray-600 mb-6 leading-relaxed line-clamp-2">
+                          {post.excerpt}
+                        </p>
+                        
+                        {/* Interaction Bar */}
+                        <div className="flex items-center justify-between pt-6 border-t border-black/5">
+                          <div className="flex items-center gap-6">
+                            <button 
+                              onClick={() => handleLike(post.id)}
+                              className="flex items-center gap-2 group/btn"
+                            >
+                              <Heart 
+                                size={20} 
+                                className={`transition-colors ${post.likes > 0 ? 'fill-red-500 text-red-500' : 'group-hover/btn:text-red-500'}`} 
+                              />
+                              <span className="text-sm font-medium">{post.likes}</span>
+                            </button>
+                            <button className="flex items-center gap-2 group/btn">
+                              <MessageCircle size={20} className="group-hover/btn:text-blue-500 transition-colors" />
+                              <span className="text-sm font-medium">{post.comments.length}</span>
+                            </button>
+                            <button 
+                              onClick={() => handleSavePost(post.id)}
+                              className="flex items-center gap-2 group/btn"
+                            >
+                              <Bookmark 
+                                size={20} 
+                                className={`transition-colors ${savedPostIds.includes(post.id) ? 'fill-yellow-500 text-yellow-500' : 'group-hover/btn:text-yellow-500'}`} 
+                              />
+                              <span className="text-sm font-medium">Save</span>
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => openShareWindow(getShareUrl('twitter', post))}
+                              className="p-2 hover:bg-blue-100/50 text-blue-500 rounded-full transition-colors"
+                              title="Share on Twitter"
+                            >
+                              <Twitter size={18} />
+                            </button>
+                            <button 
+                              onClick={() => openShareWindow(getShareUrl('facebook', post))}
+                              className="p-2 hover:bg-blue-600/10 text-blue-600 rounded-full transition-colors"
+                              title="Share on Facebook"
+                            >
+                              <Facebook size={18} />
+                            </button>
+                            <button 
+                              onClick={() => openShareWindow(getShareUrl('linkedin', post))}
+                              className="p-2 hover:bg-blue-700/10 text-blue-700 rounded-full transition-colors"
+                              title="Share on LinkedIn"
+                            >
+                              <Linkedin size={18} />
+                            </button>
+                            <button 
+                              onClick={() => openShareWindow(getShareUrl('telegram', post))}
+                              className="p-2 hover:bg-blue-400/10 text-blue-400 rounded-full transition-colors"
+                              title="Share on Telegram"
+                            >
+                              <Send size={18} />
+                            </button>
+                            <button 
+                              onClick={() => openShareWindow(getShareUrl('youtube', post))}
+                              className="p-2 hover:bg-red-600/10 text-red-600 rounded-full transition-colors"
+                              title="Visit YouTube (no direct post share)"
+                            >
+                              <Youtube size={18} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Comment Section (Simplified) */}
+                        <div className="mt-6 space-y-4">
+                          {post.comments.length > 0 && (
+                            <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                              {post.comments.map(comment => (
+                                <div key={comment.id} className="text-sm">
+                                  <span className="font-bold mr-2">{comment.author}</span>
+                                  <span className="text-gray-600">{comment.text}</span>
+                                  <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">{comment.timestamp}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <CommentInput onAdd={(text) => handleAddComment(post.id, text)} />
+                        </div>
                       </div>
-                    </div>
-                  </motion.article>
-                ))}
+                    </motion.article>
+                  );
+                })}
               </AnimatePresence>
+            </div>
+            {/* Pagination Controls */}
+            <div className="flex justify-center items-center space-x-2 mt-12">
+              <button
+                onClick={() => paginate(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-4 py-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              {[...Array(totalPages)].map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => paginate(i + 1)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium ${
+                    currentPage === i + 1 
+                      ? 'bg-black text-white' 
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+              <button
+                onClick={() => paginate(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
             </div>
           </div>
         </section>

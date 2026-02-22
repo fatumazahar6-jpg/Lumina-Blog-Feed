@@ -1,4 +1,25 @@
-import { Post } from './types';
+import { Post, Author } from './types';
+
+export const AUTHORS: Author[] = [
+  {
+    id: 'author1',
+    name: 'Eleanor Vance',
+    bio: 'A minimalist designer and photographer, exploring the intersection of technology and human experience.',
+    avatar: 'https://picsum.photos/seed/eleanor/100/100'
+  },
+  {
+    id: 'author2',
+    name: 'Marcus Thorne',
+    bio: 'Travel writer and urban explorer with a passion for hidden gems and local cultures.',
+    avatar: 'https://picsum.photos/seed/marcus/100/100'
+  },
+  {
+    id: 'author3',
+    name: 'Sophia Lee',
+    bio: 'Web design enthusiast and front-end developer, always on the lookout for the next big trend.',
+    avatar: 'https://picsum.photos/seed/sophia/100/100'
+  }
+];
 
 export const INITIAL_POSTS: Post[] = [
   {
@@ -12,7 +33,8 @@ export const INITIAL_POSTS: Post[] = [
     category: 'Lifestyle',
     comments: [
       { id: 'c1', author: 'Alex Rivers', text: 'This really resonated with me. I started decluttering last week!', timestamp: '2 hours ago' }
-    ]
+    ],
+    authorId: 'author1'
   },
   {
     id: '2',
@@ -23,7 +45,8 @@ export const INITIAL_POSTS: Post[] = [
     date: 'Nov 12, 2023',
     likes: 128,
     category: 'Travel',
-    comments: []
+    comments: [],
+    authorId: 'author2'
   },
   {
     id: '3',
@@ -36,7 +59,8 @@ export const INITIAL_POSTS: Post[] = [
     category: 'Design',
     comments: [
       { id: 'c2', author: 'Sarah Chen', text: 'Bento grids are everywhere now! Great writeup.', timestamp: '1 day ago' }
-    ]
+    ],
+    authorId: 'author3'
   },
   {
     id: '4',
@@ -47,6 +71,7 @@ export const INITIAL_POSTS: Post[] = [
     date: 'Jan 15, 2024',
     likes: 56,
     category: 'Productivity',
-    comments: []
+    comments: [],
+    authorId: 'author1'
   }
 ];

@@ -1,3 +1,10 @@
+export interface Author {
+  id: string;
+  name: string;
+  bio: string;
+  avatar: string;
+}
+
 export interface Comment {
   id: string;
   author: string;
@@ -15,4 +22,5 @@ export interface Post {
   likes: number;
   comments: Comment[];
   category: string;
+  authorId: string; // New field to link to author
 }
