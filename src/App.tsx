@@ -10,9 +10,27 @@ import {
   Linkedin,
   Mail
 } from 'lucide-react';
+import { Post, Author, Project } from './types';
+import { INITIAL_POSTS, AUTHORS, PROJECTS } from './constants';
+
+import React, { useState, useEffect } from 'react';
 
 export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState('All');
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCategory]);
+  const [posts] = useState<Post[]>(INITIAL_POSTS);
+  const [postsPerPage, setPostsPerPage] = useState(4); // Display 4 posts per page in the blog section
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const categories = ['All', ...new Set(INITIAL_POSTS.map(post => post.category))];
+
+  const filteredPosts = activeCategory === 'All'
+    ? posts
+    : posts.filter(post => post.category === activeCategory);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -34,6 +52,7 @@ export default function App() {
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center space-x-8">
               <a href="#work" className="text-sm font-medium hover:text-black/70 transition-colors">Work</a>
+              <a href="#insights" className="text-sm font-medium hover:text-black/70 transition-colors">Blog</a>
               <a href="#about" className="text-sm font-medium hover:text-black/70 transition-colors">About</a>
               <a href="#contact" className="text-sm font-medium hover:text-black/70 transition-colors">Contact</a>
             </div>
@@ -65,6 +84,7 @@ export default function App() {
             >
               <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
                 <a href="#work" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-black/5">Work</a>
+                <a href="#insights" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-black/5">Blog</a>
                 <a href="#about" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-black/5">About</a>
                 <a href="#contact" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-black/5">Contact</a>
               </div>
@@ -125,9 +145,129 @@ export default function App() {
           </div>
         </section>
 
-        {/* Placeholder for other sections (Work, About, Contact) */}
-        <section id="work" className="min-h-screen bg-yellow-500 py-20 flex items-center justify-center">
-          <h2 className="text-4xl font-bold">My Work</h2>
+        {/* Work Section */}
+        <section id="work" className="py-20 bg-yellow-400">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-4xl md:text-5xl font-bold text-center mb-16">My <span className="italic text-black/70">Work</span>.</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+              {PROJECTS.map(project => (
+                <motion.article
+                  key={project.id}
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.3 }}
+                  transition={{ duration: 0.6 }}
+                  className="flex flex-col group card-hover bg-yellow-300 rounded-xl overflow-hidden shadow-lg border border-black/10 hover:shadow-xl transition-shadow duration-300"
+                >
+                  <div className="aspect-[16/10] overflow-hidden">
+                    <img 
+                      src={project.image} 
+                      alt={project.title} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  <div className="p-6 flex-1 flex flex-col">
+                    <h3 className="text-2xl font-bold mb-3 group-hover:text-black/80 transition-colors">
+                      {project.title}
+                    </h3>
+                    <p className="text-black/70 mb-4 flex-1 line-clamp-3">
+                      {project.description}
+                    </p>
+                    <a href={project.link} className="inline-flex items-center gap-3 bg-black text-yellow-400 px-6 py-3 rounded-full font-semibold text-base hover:bg-black/80 transition-all group/link shadow-md">
+                      View Project <ArrowRight size={18} className="group-hover/link:translate-x-1 transition-transform" />
+                    </a>
+                  </div>
+                </motion.article>
+              ))}
+            </div>
+            <div className="text-center mt-16">
+              <button className="inline-flex items-center gap-3 bg-black text-yellow-400 px-6 py-3 rounded-full font-semibold text-base hover:bg-black/80 transition-all group shadow-md">
+                View All Projects <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Blog Section */}
+        <section id="insights" className="py-20 bg-yellow-400">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-4xl md:text-5xl font-bold text-center mb-16">Latest <span className="italic text-black/70">Insights</span>.</h2>
+            <div className="flex flex-wrap justify-center gap-4 mb-12">
+              {categories.map(category => (
+                <button
+                  key={category}
+                  onClick={() => setActiveCategory(category)}
+                  className={`px-6 py-2 rounded-full font-medium transition-colors
+                    ${activeCategory === category ? 'bg-black text-yellow-400' : 'bg-yellow-300 text-black hover:bg-yellow-200'}`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+              {filteredPosts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage).map(post => (
+                <motion.article
+                  key={post.id}
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.3 }}
+                  transition={{ duration: 0.6 }}
+                  className="flex flex-col group card-hover bg-yellow-300 rounded-xl overflow-hidden shadow-lg border border-black/10 hover:shadow-xl transition-shadow duration-300"
+                >
+                  <div className="aspect-[16/10] overflow-hidden">
+                    <img 
+                      src={post.image} 
+                      alt={post.title} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  <div className="p-6 flex-1 flex flex-col">
+                    <h3 className="text-2xl font-bold mb-3 group-hover:text-black/80 transition-colors">
+                      {post.title}
+                    </h3>
+                    {(() => {
+                      const author = AUTHORS.find(a => a.id === post.authorId);
+                      return author && (
+                        <div className="flex items-center gap-3 mb-4">
+                          <img 
+                            src={author.avatar} 
+                            alt={author.name} 
+                            className="w-8 h-8 rounded-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                          <p className="text-sm font-medium text-black">{author.name}</p>
+                        </div>
+                      );
+                    })()}
+                    <p className="text-black/70 mb-4 flex-1 line-clamp-3">
+                      {post.excerpt}
+                    </p>
+                    <a href="#" className="inline-flex items-center gap-3 bg-black text-yellow-400 px-6 py-3 rounded-full font-semibold text-base hover:bg-black/80 transition-all group/link shadow-md">
+                      Read More <ArrowRight size={18} className="group-hover/link:translate-x-1 transition-transform" />
+                    </a>
+                  </div>
+                </motion.article>
+              ))}
+            </div>
+            <div className="flex justify-center gap-4 mt-16">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center gap-2 bg-black text-yellow-400 px-6 py-3 rounded-full font-semibold text-base hover:bg-black/80 transition-all group shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(filteredPosts.length / postsPerPage)))}
+                disabled={currentPage === Math.ceil(filteredPosts.length / postsPerPage)}
+                className="inline-flex items-center gap-2 bg-black text-yellow-400 px-6 py-3 rounded-full font-semibold text-base hover:bg-black/80 transition-all group shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </section>
         <section id="about" className="min-h-screen bg-yellow-600 py-20 flex items-center justify-center">
           <h2 className="text-4xl font-bold">About Me</h2>
